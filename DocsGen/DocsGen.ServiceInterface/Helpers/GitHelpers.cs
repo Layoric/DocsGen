@@ -139,6 +139,8 @@ namespace DocsGen.ServiceInterface.Helpers
             using (var repo = new Repository(localRepoPath))
             {
                 var options = new PullOptions { FetchOptions = new FetchOptions() };
+                Remote remote = repo.Network.Remotes["origin"];
+                repo.Network.Fetch(remote);
                 repo.Network.Pull(
                     new Signature("ServiceStackDocsBot", "docsbot@servicestack.net",
                         new DateTimeOffset(DateTime.Now)), options);

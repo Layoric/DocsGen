@@ -21,8 +21,6 @@ namespace DocsGen.ServiceInterface
         {
             logger.Debug("WebHook received.");
 
-
-
             logger.Debug("Processing update for FullName: {0}\nName:{1}".Fmt(request.Repository.FullName, request.Repository.Name));
             var docsRepoName = AppSettings.GetString("DocsRepoOwner") + "/" + AppSettings.GetString("DocsRepoName");
 
