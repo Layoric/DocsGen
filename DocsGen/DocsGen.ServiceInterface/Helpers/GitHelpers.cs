@@ -20,7 +20,7 @@ namespace DocsGen.ServiceInterface.Helpers
         {
             var ownerName = appSettings.GetString("WikiRepoOwner");
             var repoName = appSettings.GetString("WikiRepoName");
-            var localRepoPath = appSettings.GetString("LocalRepoLocation");
+            var localRepoPath = appSettings.GetString("LocalDocsRepoLocation");
             var localRepoWikiPath = Path.Combine(localRepoPath, "wiki");
             var repo = new Repository(localRepoPath);
             var signature = new Signature("ServiceStackDocsBot", "docsbot@servicestack.net", DateTimeOffset.UtcNow);
@@ -50,7 +50,7 @@ namespace DocsGen.ServiceInterface.Helpers
             var ownerName = appSettings.GetString("DocsRepoOwner");
             var repoName = appSettings.GetString("DocsRepoName");
             var networkRepoUrl = "https://github.com/" + ownerName + "/" + repoName + ".git";
-            var localRepoPath = appSettings.GetString("LocalRepoLocation");
+            var localRepoPath = appSettings.GetString("LocalDocsRepoLocation");
             try
             {
                 Repository.Clone(networkRepoUrl, localRepoPath, new CloneOptions());
@@ -58,20 +58,20 @@ namespace DocsGen.ServiceInterface.Helpers
             catch (Exception e)
             {
                 Logger.Error("Failed to clone docs. Trying pull.", e);
-                using (var repo = new Repository(localRepoPath))
-                {
-                    var options = new PullOptions { FetchOptions = new FetchOptions() };
-                    repo.Network.Pull(
-                        new Signature("ServiceStackDocsBot", "docsbot@servicestack.net",
-                            new DateTimeOffset(DateTime.Now)), options);
-                }
+                PullRepo(localRepoPath);
             }
         }
 
+        public static void RegenerateHtmlFromMarkdown(this IMiscellaneousClient miscClient, FileInfo fileInfo)
+        {
+            string repoPath = Repository.Discover(fileInfo.FullName);
+            PullRepo(repoPath);
+            miscClient.TryConvertFromMarkdown(fileInfo);
+        }
 
         public static void StartHtmlUpdate(this IMiscellaneousClient miscClient, IAppSettings appSettings)
         {
-            var localRepoPath = appSettings.GetString("LocalRepoLocation");
+            var localRepoPath = appSettings.GetString("LocalDocsRepoLocation");
             var rootDocsDir = new DirectoryInfo(localRepoPath);
             var wikiDocsDir = new DirectoryInfo(Path.Combine(rootDocsDir.FullName, "wiki"));
             var allMarkDownFiles = wikiDocsDir.GetFiles("*.md", SearchOption.AllDirectories).ToList();
@@ -112,6 +112,17 @@ namespace DocsGen.ServiceInterface.Helpers
             htmlResponseTask.ConfigureAwait(false);
             var htmlResponse = htmlResponseTask.Result;
             File.WriteAllText(htmlFilePath, htmlResponse);
+        }
+
+        public static void PullRepo(string localRepoPath)
+        {
+            using (var repo = new Repository(localRepoPath))
+            {
+                var options = new PullOptions { FetchOptions = new FetchOptions() };
+                repo.Network.Pull(
+                    new Signature("ServiceStackDocsBot", "docsbot@servicestack.net",
+                        new DateTimeOffset(DateTime.Now)), options);
+            }
         }
     }
 }

@@ -1,13 +1,12 @@
 ﻿using System;
 using System.IO;
 using System.Linq;
-using DocsGen.ServiceInterface;
 using LibGit2Sharp;
 using ServiceStack;
 using ServiceStack.Configuration;
 using ServiceStack.Logging;
 
-namespace DocsGen
+namespace DocsGen.ServiceInterface.Helpers
 {
     public static class Migration
     {
@@ -15,7 +14,7 @@ namespace DocsGen
 
         public static void CreateDocsWikiDirectoryIfNotExists(IAppSettings appSettings)
         {
-            var localRepoPath = appSettings.GetString("LocalRepoLocation");
+            var localRepoPath = appSettings.GetString("LocalDocsRepoLocation");
             var localRepoDirInfo = new DirectoryInfo(localRepoPath);
             var localRepoWikiDirInfo = new DirectoryInfo(Path.Combine(localRepoDirInfo.FullName, "wiki"));
             if (!localRepoWikiDirInfo.Exists)
@@ -27,8 +26,8 @@ namespace DocsGen
             var ownerName = appSettings.GetString("WikiRepoOwner");
             var repoName = appSettings.GetString("WikiRepoName");
             var networkRepoUrl = "https://github.com/" + ownerName + "/" + repoName + ".git";
-            var localWikiPath = appSettings.GetString("LocalWikiLocation");
-            var localRepoPath = appSettings.GetString("LocalRepoLocation");
+            var localWikiPath = appSettings.GetString("LocalWikiRepoLocation");
+            var localRepoPath = appSettings.GetString("LocalDocsRepoLocation");
 
             try
             {
@@ -39,13 +38,7 @@ namespace DocsGen
             catch (Exception e)
             {
                 Logger.Error("Failed to clone wiki. Trying pull.", e);
-                using (var repo = new Repository(localWikiPath))
-                {
-                    var options = new PullOptions { FetchOptions = new FetchOptions() };
-                    repo.Network.Pull(
-                        new Signature("ServiceStackDocsBot", "docsbot@servicestack.net",
-                            new DateTimeOffset(DateTime.Now)), options);
-                }
+                GitHelpers.PullRepo(localRepoPath);
             }
 
             var cleanMigrationOnStart = appSettings.Get<bool>("CleanMigrationOnStart");

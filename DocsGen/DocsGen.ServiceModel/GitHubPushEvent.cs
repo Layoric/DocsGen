@@ -19,6 +19,7 @@ namespace DocsGen.ServiceModel
         public object BaseRef { get; set; }
         public string Compare { get; set; }
         public HeadCommit HeadCommit { get; set; }
+        public GitHubRepository Repository { get; set; }
     }
 
     public class HeadCommit
@@ -39,5 +40,12 @@ namespace DocsGen.ServiceModel
         public string Name { get; set; }
         public string Email { get; set; }
         public string Username { get; set; }
+    }
+
+    public class GitHubRepository
+    {
+        public int Id { get; set; }
+        public string FullName { get; set; }
+        public string Name { get; set; }
     }
 }

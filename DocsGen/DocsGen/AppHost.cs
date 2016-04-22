@@ -82,8 +82,8 @@ namespace DocsGen
 
         private void InitLocalPaths()
         {
-            var localWikiPath = AppSettings.GetString("LocalWikiLocation");
-            var localRepoPath = AppSettings.GetString("LocalRepoLocation");
+            var localWikiPath = AppSettings.GetString("LocalWikiRepoLocation");
+            var localRepoPath = AppSettings.GetString("LocalDocsRepoLocation");
             var wikiDirInfo = new DirectoryInfo(localWikiPath);
             var localRepoDirInfo = new DirectoryInfo(localRepoPath);
             if (!wikiDirInfo.Exists)

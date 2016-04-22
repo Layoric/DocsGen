@@ -87,6 +87,8 @@
   <ItemGroup>
     <Compile Include="GitHubWebHookService.cs" />
     <Compile Include="Helpers\GitHelpers.cs" />
+    <Compile Include="Helpers\Migration.cs" />
+    <Compile Include="Helpers\WikiDocumentMappings.cs" />
     <Compile Include="MyServices.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
