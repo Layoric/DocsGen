@@ -25,23 +25,35 @@ namespace DocsGen.ServiceInterface.Helpers
             var repo = new Repository(localRepoPath);
             var signature = new Signature("ServiceStackDocsBot", "docsbot@servicestack.net", DateTimeOffset.UtcNow);
             repo.Stage(localRepoWikiPath, new StageOptions());
-            var hasChanges = repo.RetrieveStatus(new StatusOptions()).Staged.ToList().Count > 0;
+            Logger.Debug("Staging changes to Docs");
+            var hasChanges = repo.RetrieveStatus(new StatusOptions()).IsDirty;
+            Logger.Debug(hasChanges ? "Changes detected!" : "No changes.");
             if (hasChanges)
             {
-                repo.Commit(
-                "Lastest docs migration from {0}/{1}.".Fmt(ownerName, repoName),
-                signature, signature,
-                new CommitOptions());
-                PushOptions options = new PushOptions();
-                var ghUserId = appSettings.GetString("GitHubUsername");
-                var ghToken = appSettings.GetString("GitHubToken");
-                options.CredentialsProvider = (url, usernameFromUrl, types) =>
-                    new UsernamePasswordCredentials()
-                    {
-                        Username = ghUserId,
-                        Password = ghToken
-                    };
-                repo.Network.Push(repo.Branches["master"], options);
+                try
+                {
+                    Logger.Debug("Changes being commited: " + repo.RetrieveStatus(new StatusOptions()).Staged.ToList().Select(x => x.FilePath + "\n"));
+                    repo.Commit(
+                    "Lastest docs migration from {0}/{1}.".Fmt(ownerName, repoName),
+                    signature, signature,
+                    new CommitOptions());
+                    PushOptions options = new PushOptions();
+                    var ghUserId = appSettings.GetString("GitHubUsername");
+                    var ghToken = appSettings.GetString("GitHubToken");
+                    options.CredentialsProvider = (url, usernameFromUrl, types) =>
+                        new UsernamePasswordCredentials()
+                        {
+                            Username = ghUserId,
+                            Password = ghToken
+                        };
+                    repo.Network.Push(repo.Branches["master"], options);
+                }
+                catch (Exception e)
+                {
+                    Logger.Error("Failed to commit changes.", e);
+                    throw;
+                }
+                
             }
         }
 
@@ -57,8 +69,15 @@ namespace DocsGen.ServiceInterface.Helpers
             }
             catch (Exception e)
             {
-                Logger.Error("Failed to clone docs. Trying pull.", e);
-                PullRepo(localRepoPath);
+                Logger.Warn("Failed to clone docs. Trying pull.", e);
+                try
+                {
+                    PullRepo(localRepoPath);
+                }
+                catch (Exception exception)
+                {
+                    Logger.Error("Failed to pull docs repo.", exception);
+                }
             }
         }
 
@@ -82,6 +101,7 @@ namespace DocsGen.ServiceInterface.Helpers
                 {
                     return;
                 }
+                Logger.Debug("Updating HTML for {0}".Fmt(htmlFile.FullName));
                 //Thottle
                 Thread.Sleep(1000);
                 try

@@ -1,5 +1,4 @@
-﻿using System.Collections.Generic;
-using System.IO;
+﻿using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using DocsGen.ServiceInterface.Helpers;
@@ -18,89 +17,73 @@ namespace DocsGen.ServiceInterface
         public IMiscellaneousClient MiscellaneousClient { get; set; }
         public IAppSettings AppSettings { get; set; }
 
-        public void Any(GitHubPushEvent request)
+        public void Any(GitHubEvent request)
         {
-            if (request.HeadCommit == null) logger.Debug("HeadCommit is null");
-            if (request.HeadCommit != null && request.HeadCommit.Modified == null) logger.Debug("Modified is null");
-            var filesToUpdate = AddedOrChangedMarkDownFiles(request);
-            var filesToRemove = RemovedMarkDownFiles(request);
+            logger.Debug("WebHook received.");
 
+
+
+            logger.Debug("Processing update for FullName: {0}\nName:{1}".Fmt(request.Repository.FullName, request.Repository.Name));
             var docsRepoName = AppSettings.GetString("DocsRepoOwner") + "/" + AppSettings.GetString("DocsRepoName");
-            var wikiRepoName = AppSettings.GetString("WikiRepoOwner") + "/" + AppSettings.GetString("WikiRepoName");
 
-            if(request.Repository.FullName == docsRepoName)
-                Task.Run(() =>
-                {
-                    UpdateDocsRepository(filesToUpdate, filesToRemove);
-                });
-
-            if(request.Repository.FullName == wikiRepoName)
-                Task.Run(() =>
-                {
-                    UpdateFromWikiLocalRepo(filesToUpdate, filesToRemove);
-                });
-
-            logger.Debug("GitHub Webhook received.\n\n" + filesToUpdate.Join(";"));
-        }
-
-        private void UpdateDocsRepository(List<string> filesToUpdate, List<string> filesToRemove)
-        {
-            if (filesToUpdate.Count > 0 || filesToRemove.Count > 0)
+            if (request.IsPushEvent() && request.HasMarkdownChanges())
             {
-                var localRepoPath = AppSettings.GetString("LocalDocsRepoLocation");
-                GitHelpers.PullRepo(localRepoPath);
-                MiscellaneousClient.StartHtmlUpdate(AppSettings);
-                GitHelpers.CommitChangesToDocs(AppSettings);
+                if (request.Repository.FullName == docsRepoName)
+                    Task.Run(() =>
+                    {
+                        UpdateDocsRepository();
+                    });
             }
-        }
 
-        private void UpdateFromWikiLocalRepo(List<string> filesToUpdate, List<string> filesToRemove)
-        {
-            if (filesToUpdate.Count > 0 || filesToRemove.Count > 0)
+            if (request.IsGollumEvent())
             {
-                var localWikiPath = AppSettings.GetString("LocalWikiRepoLocation");
-                GitHelpers.PullRepo(localWikiPath);
-
-                var localRepoPath = AppSettings.GetString("LocalDocsRepoLocation");
-                var localRepoDirInfo = new DirectoryInfo(localRepoPath);
-                var wikiDirInfo = new DirectoryInfo(localWikiPath);
-
-                var wikiFiles = wikiDirInfo.GetFiles("*.md", SearchOption.AllDirectories).ToList();
-
-                wikiFiles.ForEach(wikiFile =>
-                {
-                    string relativePath = wikiFile.FullName.Replace(wikiDirInfo.FullName + "\\", "");
-                    string destPath = Path.Combine(localRepoDirInfo.FullName + "\\wiki", relativePath);
-                    logger.Debug("Copying file from {0} \n To: \n {1}".Fmt(wikiFile.FullName, destPath));
-                    File.Copy(wikiFile.FullName, destPath, true);
-                });
-
-                WikiDocumentMappings.MarkdownMappings.ForEach((key, val) =>
-                {
-                    var sourcePath = Path.Combine(localRepoDirInfo.FullName, key.Replace("/", "\\"));
-                    var destPath = Path.Combine(localRepoDirInfo.FullName, val.Replace("/", "\\"));
-                    File.Copy(sourcePath, destPath, true);
-                });
-
-                MiscellaneousClient.StartHtmlUpdate(AppSettings);
-                GitHelpers.CommitChangesToDocs(AppSettings);
+                var wikiRepoName = AppSettings.GetString("WikiRepoOwner") + "/" + AppSettings.GetString("WikiRepoName");
+                if (request.Repository.FullName == wikiRepoName)
+                    Task.Run(() =>
+                    {
+                        UpdateFromWikiLocalRepo();
+                    });
             }
+
+            logger.Debug("GitHub Webhook received.\n");
         }
 
-        private List<string> AddedOrChangedMarkDownFiles(GitHubPushEvent request)
+        private void UpdateDocsRepository()
         {
-            List<string> result = new List<string>();
-            if (request.HeadCommit == null)
-                return result;
-
-            result.AddRange(request.HeadCommit.Added.Where(x => x.ToLower().EndsWith(".md")));
-            result.AddRange(request.HeadCommit.Modified.Where(x => x.ToLower().EndsWith(".md")));
-            return result;
+            var localRepoPath = AppSettings.GetString("LocalDocsRepoLocation");
+            GitHelpers.PullRepo(localRepoPath);
+            MiscellaneousClient.StartHtmlUpdate(AppSettings);
+            GitHelpers.CommitChangesToDocs(AppSettings);
         }
 
-        private List<string> RemovedMarkDownFiles(GitHubPushEvent request)
+        private void UpdateFromWikiLocalRepo()
         {
-            return request.HeadCommit?.Removed.Where(x => x.ToLower().EndsWith(".md")).ToList() ?? new List<string>();
+            var localWikiPath = AppSettings.GetString("LocalWikiRepoLocation");
+            GitHelpers.PullRepo(localWikiPath);
+
+            var localRepoPath = AppSettings.GetString("LocalDocsRepoLocation");
+            var localRepoDirInfo = new DirectoryInfo(localRepoPath);
+            var wikiDirInfo = new DirectoryInfo(localWikiPath);
+
+            var wikiFiles = wikiDirInfo.GetFiles("*.md", SearchOption.AllDirectories).ToList();
+
+            wikiFiles.ForEach(wikiFile =>
+            {
+                string relativePath = wikiFile.FullName.Replace(wikiDirInfo.FullName + "\\", "");
+                string destPath = Path.Combine(localRepoDirInfo.FullName + "\\wiki", relativePath);
+                logger.Debug("Copying file from {0} \n To: \n {1}".Fmt(wikiFile.FullName, destPath));
+                File.Copy(wikiFile.FullName, destPath, true);
+            });
+
+            WikiDocumentMappings.MarkdownMappings.ForEach((key, val) =>
+            {
+                var sourcePath = Path.Combine(localRepoDirInfo.FullName, key.Replace("/", "\\"));
+                var destPath = Path.Combine(localRepoDirInfo.FullName, val.Replace("/", "\\"));
+                File.Copy(sourcePath, destPath, true);
+            });
+
+            MiscellaneousClient.StartHtmlUpdate(AppSettings);
+            GitHelpers.CommitChangesToDocs(AppSettings);
         }
     }
 }

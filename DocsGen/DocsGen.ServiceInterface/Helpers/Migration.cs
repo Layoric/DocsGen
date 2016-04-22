@@ -37,8 +37,15 @@ namespace DocsGen.ServiceInterface.Helpers
             }
             catch (Exception e)
             {
-                Logger.Error("Failed to clone wiki. Trying pull.", e);
-                GitHelpers.PullRepo(localRepoPath);
+                Logger.Warn("Failed to clone wiki. Trying pull.", e);
+                try
+                {
+                    GitHelpers.PullRepo(localRepoPath);
+                }
+                catch (Exception exception)
+                {
+                    Logger.Error("Failed to pull Wiki repo", exception);
+                }
             }
 
             var cleanMigrationOnStart = appSettings.Get<bool>("CleanMigrationOnStart");

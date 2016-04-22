@@ -8,8 +8,14 @@ using ServiceStack;
 namespace DocsGen.ServiceModel
 {
     [Route("/docspush")]
-    public class GitHubPushEvent : IReturnVoid
+    public class GitHubEvent : IReturnVoid
     {
+        public GitHubEvent()
+        {
+            Pages = new List<GitHubPage>();
+            Commits = new List<GitCommit>();
+        }
+
         public string Ref { get; set; }
         public string Before { get; set; }
         public string After { get; set; }
@@ -18,11 +24,17 @@ namespace DocsGen.ServiceModel
         public bool Forced { get; set; }
         public object BaseRef { get; set; }
         public string Compare { get; set; }
-        public HeadCommit HeadCommit { get; set; }
+
+        public List<GitCommit> Commits { get; set; }
+        public List<GitHubPage> Pages { get; set; }
+
         public GitHubRepository Repository { get; set; }
     }
 
-    public class HeadCommit
+    /// <summary>
+    /// Only exists for Push event
+    /// </summary>
+    public class GitCommit
     {
         public string Id { get; set; }
         public bool Distinct { get; set; }
@@ -33,6 +45,16 @@ namespace DocsGen.ServiceModel
         public List<string> Added { get; set; }
         public List<string> Removed { get; set; }
         public List<string> Modified { get; set; }
+    }
+
+    public class GitHubPage
+    {
+        public string PageName { get; set; }
+        public string Title { get; set; }
+        public string Summary { get; set; }
+        public string Action { get; set; }
+        public string Sha { get; set; }
+        public string HtmlUrl { get; set; }
     }
 
     public class Committer

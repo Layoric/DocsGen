@@ -52,7 +52,7 @@ namespace DocsGen
                 AddRedirectParamsToQueryString = true
             });
 
-            LogManager.LogFactory = new EventLogFactory("DocsGen.Logging", "Application");
+            LogManager.LogFactory = new EventLogFactory("DocsGen.Logging", "Application",true);
             JsConfig.PropertyConvention = PropertyConvention.Lenient;
             JsConfig.EmitCamelCaseNames = false;
             JsConfig.EmitLowercaseUnderscoreNames = true;
