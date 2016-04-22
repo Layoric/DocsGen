@@ -26,6 +26,7 @@ namespace DocsGen.ServiceInterface
 
             if (request.IsPushEvent() && request.HasMarkdownChanges())
             {
+                logger.Debug("Comparing {0} to {1}".Fmt(request.Repository.FullName, docsRepoName));
                 if (request.Repository.FullName == docsRepoName)
                     Task.Run(() =>
                     {
@@ -36,6 +37,7 @@ namespace DocsGen.ServiceInterface
             if (request.IsGollumEvent())
             {
                 var wikiRepoName = AppSettings.GetString("WikiRepoOwner") + "/" + AppSettings.GetString("WikiRepoName");
+                logger.Debug("Comparing {0} to {1}".Fmt(request.Repository.FullName,wikiRepoName));
                 if (request.Repository.FullName == wikiRepoName)
                     Task.Run(() =>
                     {

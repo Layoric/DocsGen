@@ -65,7 +65,7 @@ namespace DocsGen
                     new ProductHeaderValue("SS"),
                     new InMemoryCredentialStore(new Credentials(ghUserId, ghToken)))
                 ));
-            container.Register<IAppSettings>(new AppSettings());
+            container.Register(AppSettings);
             var miscClient = container.Resolve<IMiscellaneousClient>();
 
             migrationEnabled = AppSettings.Get<bool>("MigrationEnabled");

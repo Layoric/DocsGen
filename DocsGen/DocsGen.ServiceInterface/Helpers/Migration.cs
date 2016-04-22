@@ -24,7 +24,7 @@ namespace DocsGen.ServiceInterface.Helpers
         public static void MigrateExistingWiki(IAppSettings appSettings)
         {
             var ownerName = appSettings.GetString("WikiRepoOwner");
-            var repoName = appSettings.GetString("WikiRepoName");
+            var repoName = appSettings.GetString("WikiRepoName") + ".wiki";
             var networkRepoUrl = "https://github.com/" + ownerName + "/" + repoName + ".git";
             var localWikiPath = appSettings.GetString("LocalWikiRepoLocation");
             var localRepoPath = appSettings.GetString("LocalDocsRepoLocation");
@@ -40,7 +40,7 @@ namespace DocsGen.ServiceInterface.Helpers
                 Logger.Warn("Failed to clone wiki. Trying pull.", e);
                 try
                 {
-                    GitHelpers.PullRepo(localRepoPath);
+                    GitHelpers.PullRepo(localWikiPath);
                 }
                 catch (Exception exception)
                 {

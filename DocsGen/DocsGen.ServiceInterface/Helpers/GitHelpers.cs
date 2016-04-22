@@ -34,7 +34,7 @@ namespace DocsGen.ServiceInterface.Helpers
                 {
                     Logger.Debug("Changes being commited: " + repo.RetrieveStatus(new StatusOptions()).Staged.ToList().Select(x => x.FilePath + "\n"));
                     repo.Commit(
-                    "Lastest docs migration from {0}/{1}.".Fmt(ownerName, repoName),
+                    "Lastest wiki migration from {0}/{1}.".Fmt(ownerName, repoName),
                     signature, signature,
                     new CommitOptions());
                     PushOptions options = new PushOptions();
