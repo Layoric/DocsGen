@@ -75,10 +75,10 @@ namespace DocsGen.ServiceInterface.Helpers
             var rootDocsDir = new DirectoryInfo(localRepoPath);
             var wikiDocsDir = new DirectoryInfo(Path.Combine(rootDocsDir.FullName, "wiki"));
             var allMarkDownFiles = wikiDocsDir.GetFiles("*.md", SearchOption.AllDirectories).ToList();
-            allMarkDownFiles.ForEach(fileInfo =>
+            allMarkDownFiles.ForEach(markdownFile =>
             {
-                var htmlFile = new FileInfo(fileInfo.FullName.Replace(".md", ".html"));
-                if (htmlFile.Exists && (fileInfo.LastWriteTime < htmlFile.CreationTime))
+                var htmlFile = new FileInfo(markdownFile.FullName.Replace(".md", ".html"));
+                if (htmlFile.Exists && (htmlFile.LastWriteTimeUtc >= markdownFile.LastWriteTimeUtc))
                 {
                     return;
                 }
@@ -86,14 +86,14 @@ namespace DocsGen.ServiceInterface.Helpers
                 Thread.Sleep(1000);
                 try
                 {
-                    miscClient.TryConvertFromMarkdown(fileInfo);
+                    miscClient.TryConvertFromMarkdown(markdownFile);
                 }
                 catch (Exception)
                 {
                     try
                     {
                         Thread.Sleep(5000);
-                        miscClient.TryConvertFromMarkdown(fileInfo);
+                        miscClient.TryConvertFromMarkdown(markdownFile);
                     }
                     catch (Exception e)
                     {

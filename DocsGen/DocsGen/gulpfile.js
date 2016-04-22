@@ -154,7 +154,8 @@
                 targets: ['Clean', 'Build'],
                 stdout: true,
                 verbosity: 'quiet',
-                toolsVersion: 14.0
+                toolsVersion: 14.0,
+                configuration: 'Release'
             }
             ));
     });
