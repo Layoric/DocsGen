@@ -153,7 +153,8 @@
             .pipe(msbuild({
                 targets: ['Clean', 'Build'],
                 stdout: true,
-                verbosity: 'quiet'
+                verbosity: 'quiet',
+                toolsVersion: 14.0
             }
             ));
     });
