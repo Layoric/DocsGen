@@ -1,2 +1,0 @@
-# Release App Settings
-DebugMode false

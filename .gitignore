@@ -286,3 +286,4 @@ $RECYCLE.BIN/
 
 
 wwwroot_build/deploy/
+DocsGen/DocsGen/wwwroot_build/deploy/appsettings.txt
