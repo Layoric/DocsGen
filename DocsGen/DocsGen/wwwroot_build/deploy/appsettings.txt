@@ -1,9 +1,2 @@
 # Release App Settings
-
 DebugMode false
-HasGitHubCredentials false
-GitHubUsername
-GitHubToken
-DocsRepoOwner ServiceStack
-DocsRepoName docs
-LocalRepoLocation c:\src\ServiceStacl\docs
