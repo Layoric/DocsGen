@@ -7,12 +7,32 @@ using ServiceStack;
 
 namespace DocsGen.ServiceModel
 {
-    [Route("/docspush")]
-    public class GitHubEvent : IReturnVoid
+    [Route("/webhooks/wiki")]
+    public class GitHubGollumEvent : IReturnVoid
     {
-        public GitHubEvent()
+        public GitHubGollumEvent()
         {
             Pages = new List<GitHubPage>();
+        }
+
+        public string Ref { get; set; }
+        public string Before { get; set; }
+        public string After { get; set; }
+        public bool Created { get; set; }
+        public bool Deleted { get; set; }
+        public bool Forced { get; set; }
+        public object BaseRef { get; set; }
+        public string Compare { get; set; }
+
+        public List<GitHubPage> Pages { get; set; }
+        public GitHubRepository Repository { get; set; }
+    }
+
+    [Route("/webhook/docs")]
+    public class GitHubCommitEvent : IReturnVoid
+    {
+        public GitHubCommitEvent()
+        {
             Commits = new List<GitCommit>();
         }
 
@@ -26,8 +46,6 @@ namespace DocsGen.ServiceModel
         public string Compare { get; set; }
 
         public List<GitCommit> Commits { get; set; }
-        public List<GitHubPage> Pages { get; set; }
-
         public GitHubRepository Repository { get; set; }
     }
 
@@ -69,5 +87,11 @@ namespace DocsGen.ServiceModel
         public int Id { get; set; }
         public string FullName { get; set; }
         public string Name { get; set; }
+        public GitHubRepositoryOwner Owner { get; set; }
+    }
+
+    public class GitHubRepositoryOwner
+    {
+        public string Login { get; set; }
     }
 }

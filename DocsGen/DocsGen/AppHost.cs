@@ -9,7 +9,6 @@ using ServiceStack.Configuration;
 using ServiceStack.Logging;
 using ServiceStack.Logging.EventLog;
 using ServiceStack.Text;
-using Credentials = Octokit.Credentials;
 
 namespace DocsGen
 {
@@ -52,7 +51,7 @@ namespace DocsGen
                 AddRedirectParamsToQueryString = true
             });
 
-            LogManager.LogFactory = new EventLogFactory("DocsGen.Logging", "Application",true);
+            LogManager.LogFactory = new EventLogFactory("DocsGen.Logging", "Application", true);
             JsConfig.PropertyConvention = PropertyConvention.Lenient;
             JsConfig.EmitCamelCaseNames = false;
             JsConfig.EmitLowercaseUnderscoreNames = true;
@@ -73,10 +72,11 @@ namespace DocsGen
             InitLocalPaths();
             GitHelpers.UpdateLocalRepo(AppSettings);
 
-            if(migrationEnabled)
+            if (migrationEnabled)
                 Migration.MigrateExistingWiki(AppSettings);
 
-            miscClient.StartHtmlUpdate(AppSettings);
+            var localRepoPath = AppSettings.GetString("LocalDocsRepoLocation");
+            miscClient.StartHtmlUpdate(localRepoPath);
             GitHelpers.CommitChangesToDocs(AppSettings);
         }
 

@@ -1,7 +1,10 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Text;
 using System.Threading;
+using System.Threading.Tasks;
 using LibGit2Sharp;
 using Octokit;
 using ServiceStack;
@@ -53,7 +56,42 @@ namespace DocsGen.ServiceInterface.Helpers
                     Logger.Error("Failed to commit changes.", e);
                     throw;
                 }
-                
+
+            }
+        }
+
+        public static void CommitAndPushToOrigin(string localRepoPath, string webhookSource, string ghUserId, string ghToken)
+        {
+            var repo = new Repository(localRepoPath);
+            var signature = new Signature("ServiceStackDocsBot", "docsbot@servicestack.net", DateTimeOffset.UtcNow);
+            repo.Stage(localRepoPath, new StageOptions());
+            Logger.Debug("Staging changes to Docs");
+            var hasChanges = repo.RetrieveStatus(new StatusOptions()).IsDirty;
+            Logger.Debug(hasChanges ? "Changes detected!" : "No changes.");
+            if (hasChanges)
+            {
+                try
+                {
+                    Logger.Debug("Changes being commited: " + repo.RetrieveStatus(new StatusOptions()).Staged.ToList().Select(x => x.FilePath + "\n"));
+
+                    repo.Commit(
+                    "Lastest changes from {0}.".Fmt(webhookSource),
+                    signature, signature,
+                    new CommitOptions());
+                    PushOptions options = new PushOptions();
+                    options.CredentialsProvider = (url, usernameFromUrl, types) =>
+                        new UsernamePasswordCredentials()
+                        {
+                            Username = ghUserId,
+                            Password = ghToken
+                        };
+                    repo.Network.Push(repo.Branches["master"], options);
+                }
+                catch (Exception e)
+                {
+                    Logger.Error("Failed to commit changes.", e);
+                    throw;
+                }
             }
         }
 
@@ -88,12 +126,10 @@ namespace DocsGen.ServiceInterface.Helpers
             miscClient.TryConvertFromMarkdown(fileInfo);
         }
 
-        public static void StartHtmlUpdate(this IMiscellaneousClient miscClient, IAppSettings appSettings)
+        public static void StartHtmlUpdate(this IMiscellaneousClient miscClient, string localRepoPath)
         {
-            var localRepoPath = appSettings.GetString("LocalDocsRepoLocation");
             var rootDocsDir = new DirectoryInfo(localRepoPath);
-            var wikiDocsDir = new DirectoryInfo(Path.Combine(rootDocsDir.FullName, "wiki"));
-            var allMarkDownFiles = wikiDocsDir.GetFiles("*.md", SearchOption.AllDirectories).ToList();
+            var allMarkDownFiles = rootDocsDir.GetFiles("*.md", SearchOption.AllDirectories).ToList();
             allMarkDownFiles.ForEach(markdownFile =>
             {
                 var htmlFile = new FileInfo(markdownFile.FullName.Replace(".md", ".html"));
@@ -145,6 +181,28 @@ namespace DocsGen.ServiceInterface.Helpers
                     new Signature("ServiceStackDocsBot", "docsbot@servicestack.net",
                         new DateTimeOffset(DateTime.Now)), options);
             }
+        }
+
+        public static bool HasLocalRepo(string localBasePath, string login, string name)
+        {
+            var path = Path.Combine(localBasePath, login + "\\" + name);
+            if (!Directory.Exists(path))
+                return false;
+
+            try
+            {
+                using (var repo = new Repository(path))
+                {
+                    if (repo.Branches != null && repo.Branches["master"] != null)
+                        return true;
+                }
+            }
+            catch (Exception e)
+            {
+                Logger.Debug("No local repo exists: " + localBasePath);
+            }
+
+            return false;
         }
     }
 }

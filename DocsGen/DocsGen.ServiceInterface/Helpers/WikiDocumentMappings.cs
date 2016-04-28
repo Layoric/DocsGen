@@ -6,7 +6,7 @@ namespace DocsGen.ServiceInterface.Helpers
     {
         public static Dictionary<string, string> MarkdownMappings = new Dictionary<string, string>
         {
-            
+
         };
     }
 }

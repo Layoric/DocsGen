@@ -7,6 +7,7 @@ using Octokit;
 using ServiceStack;
 using ServiceStack.Configuration;
 using ServiceStack.Logging;
+using Repository = LibGit2Sharp.Repository;
 
 namespace DocsGen.ServiceInterface
 {
@@ -17,43 +18,61 @@ namespace DocsGen.ServiceInterface
         public IMiscellaneousClient MiscellaneousClient { get; set; }
         public IAppSettings AppSettings { get; set; }
 
-        public void Any(GitHubEvent request)
+        private const string githubRepoUrlFmt = "https://github.com/{0}.git";
+
+        public void Any(GitHubCommitEvent request)
         {
             logger.Debug("WebHook received.");
-
             logger.Debug("Processing update for FullName: {0}\nName:{1}".Fmt(request.Repository.FullName, request.Repository.Name));
-            var docsRepoName = AppSettings.GetString("DocsRepoOwner") + "/" + AppSettings.GetString("DocsRepoName");
 
-            if (request.IsPushEvent() && request.HasMarkdownChanges())
+            if (!request.IsPushEvent() || !request.HasMarkdownChanges())
             {
-                logger.Debug("Comparing {0} to {1}".Fmt(request.Repository.FullName, docsRepoName));
-                if (request.Repository.FullName == docsRepoName)
-                    Task.Run(() =>
-                    {
-                        UpdateDocsRepository();
-                    });
+                logger.Debug("Invalid request or no Markdown changes detected. Skipping update.");
+                return;
             }
+
+            logger.Debug("Markdown changes detected, pull changes and updating.");
+            var repoGitHubUrl = githubRepoUrlFmt.Fmt(request.Repository.FullName);
+            var localRepoBasePath = AppSettings.GetString("LocalRepositoryBasePath");
+            Task.Run(() =>
+            {
+                string localPath = Path.Combine(localRepoBasePath,
+                    request.Repository.Owner.Login + "\\" + request.Repository.Name);
+                if (!GitHelpers.HasLocalRepo(localRepoBasePath, request.Repository.Owner.Login,
+                    request.Repository.Name))
+                {
+
+                    if (!Directory.Exists(localPath))
+                        Directory.CreateDirectory(localPath);
+                    Repository.Clone(repoGitHubUrl, localPath);
+                }
+                else
+                {
+                    GitHelpers.PullRepo(localPath);
+                }
+
+                MiscellaneousClient.StartHtmlUpdate(localPath);
+                var ghUserId = AppSettings.GetString("GitHubUsername");
+                var ghToken = AppSettings.GetString("GitHubToken");
+                GitHelpers.CommitAndPushToOrigin(localPath, request.Repository.FullName, ghUserId, ghToken);
+            });
+        }
+
+        public void Any(GitHubGollumEvent request)
+        {
+            logger.Debug("Wiki WebHook received.");
+            logger.Debug("Processing update for FullName: {0}\nName:{1}".Fmt(request.Repository.FullName, request.Repository.Name));
 
             if (request.IsGollumEvent())
             {
                 var wikiRepoName = AppSettings.GetString("WikiRepoOwner") + "/" + AppSettings.GetString("WikiRepoName");
-                logger.Debug("Comparing {0} to {1}".Fmt(request.Repository.FullName,wikiRepoName));
+                logger.Debug("Comparing {0} to {1}".Fmt(request.Repository.FullName, wikiRepoName));
                 if (request.Repository.FullName == wikiRepoName)
                     Task.Run(() =>
                     {
                         UpdateFromWikiLocalRepo();
                     });
             }
-
-            logger.Debug("GitHub Webhook received.\n");
-        }
-
-        private void UpdateDocsRepository()
-        {
-            var localRepoPath = AppSettings.GetString("LocalDocsRepoLocation");
-            GitHelpers.PullRepo(localRepoPath);
-            MiscellaneousClient.StartHtmlUpdate(AppSettings);
-            GitHelpers.CommitChangesToDocs(AppSettings);
         }
 
         private void UpdateFromWikiLocalRepo()
@@ -82,7 +101,7 @@ namespace DocsGen.ServiceInterface
                 File.Copy(sourcePath, destPath, true);
             });
 
-            MiscellaneousClient.StartHtmlUpdate(AppSettings);
+            MiscellaneousClient.StartHtmlUpdate(localRepoPath);
             GitHelpers.CommitChangesToDocs(AppSettings);
         }
     }
