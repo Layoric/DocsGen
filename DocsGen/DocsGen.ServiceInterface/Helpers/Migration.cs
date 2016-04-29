@@ -65,12 +65,11 @@ namespace DocsGen.ServiceInterface.Helpers
             var wikiDirInfo = new DirectoryInfo(localWikiPath);
 
             var wikiFiles = wikiDirInfo.GetFiles("*.md", SearchOption.AllDirectories).ToList();
-
+            Logger.Debug("Copying file from {0} \n To: \n {1}".Fmt(wikiDirInfo.FullName, localRepoDirInfo.FullName + "\\wiki"));
             wikiFiles.ForEach(wikiFile =>
             {
                 string relativePath = wikiFile.FullName.Replace(wikiDirInfo.FullName + "\\", "");
                 string destPath = Path.Combine(localRepoDirInfo.FullName + "\\wiki", relativePath);
-                Logger.Debug("Copying file from {0} \n To: \n {1}".Fmt(wikiFile.FullName, destPath));
                 File.Copy(wikiFile.FullName, destPath, true);
             });
 

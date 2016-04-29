@@ -37,11 +37,12 @@ namespace DocsGen.ServiceInterface.Helpers
             {
                 try
                 {
-                    Logger.Debug("Changes being commited: " + repo.RetrieveStatus(new StatusOptions()).Staged.ToList().Select(x => x.FilePath + "\n"));
+                    Logger.Debug("Changes being commited: " +
+                                 repo.RetrieveStatus(new StatusOptions()).Staged.ToList().Select(x => x.FilePath + "\n"));
                     repo.Commit(
-                    "Lastest wiki migration from {0}/{1}.".Fmt(ownerName, repoName),
-                    signature, signature,
-                    new CommitOptions());
+                        "Lastest wiki migration from {0}/{1}.".Fmt(ownerName, repoName),
+                        signature, signature,
+                        new CommitOptions());
                     PushOptions options = new PushOptions();
                     var ghUserId = appSettings.GetString("GitHubUsername");
                     var ghToken = appSettings.GetString("GitHubToken");
@@ -52,6 +53,10 @@ namespace DocsGen.ServiceInterface.Helpers
                             Password = ghToken
                         };
                     repo.Network.Push(repo.Branches["master"], options);
+                }
+                catch (EmptyCommitException)
+                {
+                    // Ignore
                 }
                 catch (Exception e)
                 {
@@ -66,7 +71,7 @@ namespace DocsGen.ServiceInterface.Helpers
         {
             var repo = new Repository(localRepoPath);
             var signature = new Signature(BotName, BotEmail, DateTimeOffset.UtcNow);
-            repo.Stage(localRepoPath, new StageOptions());
+            repo.Stage("*");
             Logger.Debug("Staging changes to Docs");
             var hasChanges = repo.RetrieveStatus(new StatusOptions()).IsDirty;
             Logger.Debug(hasChanges ? "Changes detected!" : "No changes.");
@@ -74,12 +79,13 @@ namespace DocsGen.ServiceInterface.Helpers
             {
                 try
                 {
-                    Logger.Debug("Changes being commited: " + repo.RetrieveStatus(new StatusOptions()).Staged.ToList().Select(x => x.FilePath + "\n"));
+                    Logger.Debug("Changes being commited: " +
+                                 repo.RetrieveStatus(new StatusOptions()).Staged.ToList().Select(x => x.FilePath + "\n"));
 
                     repo.Commit(
-                    "Lastest changes from {0}.".Fmt(webhookSource),
-                    signature, signature,
-                    new CommitOptions());
+                        "Lastest changes from {0}.".Fmt(webhookSource),
+                        signature, signature,
+                        new CommitOptions());
                     PushOptions options = new PushOptions();
                     options.CredentialsProvider = (url, usernameFromUrl, types) =>
                         new UsernamePasswordCredentials()
@@ -89,10 +95,14 @@ namespace DocsGen.ServiceInterface.Helpers
                         };
                     repo.Network.Push(repo.Branches["master"], options);
                 }
+                catch (EmptyCommitException)
+                {
+                    //Ignore
+                    Logger.Debug("Empty commit.");
+                }
                 catch (Exception e)
                 {
                     Logger.Error("Failed to commit changes.", e);
-                    throw;
                 }
             }
         }

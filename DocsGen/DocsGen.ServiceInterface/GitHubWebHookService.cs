@@ -1,4 +1,5 @@
-﻿using System.IO;
+﻿using System;
+using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using DocsGen.ServiceInterface.Helpers;
@@ -7,6 +8,7 @@ using Octokit;
 using ServiceStack;
 using ServiceStack.Configuration;
 using ServiceStack.Logging;
+using ServiceStack.Text;
 using Repository = LibGit2Sharp.Repository;
 
 namespace DocsGen.ServiceInterface
@@ -23,6 +25,7 @@ namespace DocsGen.ServiceInterface
         public void Any(GitHubCommitEvent request)
         {
             logger.Debug("WebHook received.");
+            logger.Debug("Full request received: \n" + request.Dump());
             // Avoid loop from commiting changes itself.
             if (request.Pusher.Email == GitHelpers.BotEmail)
             {
@@ -42,25 +45,32 @@ namespace DocsGen.ServiceInterface
             var localRepoBasePath = AppSettings.GetString("LocalRepositoryBasePath");
             Task.Run(() =>
             {
-                string localPath = Path.Combine(localRepoBasePath,
-                    request.Repository.Owner.Login + "\\" + request.Repository.Name);
-                if (!GitHelpers.HasLocalRepo(localRepoBasePath, request.Repository.Owner.Login,
-                    request.Repository.Name))
+                try
                 {
+                    string owner = request.Repository.FullName.Split('/')[0];
+                    string repoName = request.Repository.FullName.Split('/')[1];
+                    string localPath = Path.Combine(localRepoBasePath,owner + "\\" + repoName);
+                    if (!GitHelpers.HasLocalRepo(localRepoBasePath, owner, repoName))
+                    {
 
-                    if (!Directory.Exists(localPath))
-                        Directory.CreateDirectory(localPath);
-                    Repository.Clone(repoGitHubUrl, localPath);
+                        if (!Directory.Exists(localPath))
+                            Directory.CreateDirectory(localPath);
+                        Repository.Clone(repoGitHubUrl, localPath);
+                    }
+                    else
+                    {
+                        GitHelpers.PullRepo(localPath);
+                    }
+
+                    MiscellaneousClient.StartHtmlUpdate(localPath);
+                    var ghUserId = AppSettings.GetString("GitHubUsername");
+                    var ghToken = AppSettings.GetString("GitHubToken");
+                    GitHelpers.CommitAndPushToOrigin(localPath, request.Repository.FullName, ghUserId, ghToken);
                 }
-                else
+                catch (Exception e)
                 {
-                    GitHelpers.PullRepo(localPath);
+                    logger.Error("Failed to update from webhook.",e);
                 }
-
-                MiscellaneousClient.StartHtmlUpdate(localPath);
-                var ghUserId = AppSettings.GetString("GitHubUsername");
-                var ghToken = AppSettings.GetString("GitHubToken");
-                GitHelpers.CommitAndPushToOrigin(localPath, request.Repository.FullName, ghUserId, ghToken);
             });
         }
 

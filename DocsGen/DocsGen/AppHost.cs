@@ -8,6 +8,7 @@ using ServiceStack;
 using ServiceStack.Configuration;
 using ServiceStack.Logging;
 using ServiceStack.Logging.EventLog;
+using ServiceStack.Logging.Slack;
 using ServiceStack.Text;
 
 namespace DocsGen
@@ -51,7 +52,11 @@ namespace DocsGen
                 AddRedirectParamsToQueryString = true
             });
 
-            LogManager.LogFactory = new EventLogFactory("DocsGen.Logging", "Application", true);
+            LogManager.LogFactory = new SlackLogFactory(AppSettings.GetString("SlackUrl"), true)
+            {
+                DefaultChannel = "other",
+                ChannelPrefix = "logs-"
+            };
             JsConfig.PropertyConvention = PropertyConvention.Lenient;
             JsConfig.EmitCamelCaseNames = false;
             JsConfig.EmitLowercaseUnderscoreNames = true;
