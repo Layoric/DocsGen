@@ -18,6 +18,8 @@ namespace DocsGen.ServiceInterface.Helpers
     public static class GitHelpers
     {
         private static ILog Logger => LogManager.GetLogger(typeof(MyServices));
+        public const string BotName = "ServiceStackDocsBot";
+        public const string BotEmail = "docsbot@servicestack.net";
 
         public static void CommitChangesToDocs(IAppSettings appSettings)
         {
@@ -26,7 +28,7 @@ namespace DocsGen.ServiceInterface.Helpers
             var localRepoPath = appSettings.GetString("LocalDocsRepoLocation");
             var localRepoWikiPath = Path.Combine(localRepoPath, "wiki");
             var repo = new Repository(localRepoPath);
-            var signature = new Signature("ServiceStackDocsBot", "docsbot@servicestack.net", DateTimeOffset.UtcNow);
+            var signature = new Signature(BotName, BotEmail, DateTimeOffset.UtcNow);
             repo.Stage(localRepoWikiPath, new StageOptions());
             Logger.Debug("Staging changes to Docs");
             var hasChanges = repo.RetrieveStatus(new StatusOptions()).IsDirty;
@@ -63,7 +65,7 @@ namespace DocsGen.ServiceInterface.Helpers
         public static void CommitAndPushToOrigin(string localRepoPath, string webhookSource, string ghUserId, string ghToken)
         {
             var repo = new Repository(localRepoPath);
-            var signature = new Signature("ServiceStackDocsBot", "docsbot@servicestack.net", DateTimeOffset.UtcNow);
+            var signature = new Signature(BotName, BotEmail, DateTimeOffset.UtcNow);
             repo.Stage(localRepoPath, new StageOptions());
             Logger.Debug("Staging changes to Docs");
             var hasChanges = repo.RetrieveStatus(new StatusOptions()).IsDirty;
@@ -178,7 +180,7 @@ namespace DocsGen.ServiceInterface.Helpers
                 Remote remote = repo.Network.Remotes["origin"];
                 repo.Network.Fetch(remote);
                 repo.Network.Pull(
-                    new Signature("ServiceStackDocsBot", "docsbot@servicestack.net",
+                    new Signature(BotName, BotEmail,
                         new DateTimeOffset(DateTime.Now)), options);
             }
         }

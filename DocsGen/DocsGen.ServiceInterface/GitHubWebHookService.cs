@@ -23,7 +23,13 @@ namespace DocsGen.ServiceInterface
         public void Any(GitHubCommitEvent request)
         {
             logger.Debug("WebHook received.");
-            logger.Debug("Processing update for FullName: {0}\nName:{1}".Fmt(request.Repository.FullName, request.Repository.Name));
+            // Avoid loop from commiting changes itself.
+            if (request.Pusher.Email == GitHelpers.BotEmail)
+            {
+                logger.Debug("Push event from " + GitHelpers.BotEmail + ". Ignoring.");
+                return;
+            }
+            logger.Debug("Processing update for repository - FullName: {0}".Fmt(request.Repository.FullName));
 
             if (!request.IsPushEvent() || !request.HasMarkdownChanges())
             {
