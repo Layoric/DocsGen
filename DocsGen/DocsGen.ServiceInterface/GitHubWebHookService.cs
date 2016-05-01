@@ -27,7 +27,7 @@ namespace DocsGen.ServiceInterface
             logger.Debug("WebHook received.");
             logger.Debug("Full request received: \n" + request.Dump());
             // Avoid loop from commiting changes itself.
-            if (request.Pusher.Email == GitHelpers.BotEmail)
+            if (request.Committer.Email == GitHelpers.BotEmail)
             {
                 logger.Debug("Push event from " + GitHelpers.BotEmail + ". Ignoring.");
                 return;

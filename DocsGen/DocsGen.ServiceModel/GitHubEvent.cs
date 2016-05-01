@@ -47,10 +47,16 @@ namespace DocsGen.ServiceModel
 
         public List<GitCommit> Commits { get; set; }
         public GitHubRepository Repository { get; set; }
-        public GitHubPusher Pusher { get; set; }
+        public GitHubCommiter Committer { get; set; }
     }
 
     public class GitHubPusher
+    {
+        public string Name { get; set; }
+        public string Email { get; set; }
+    }
+
+    public class GitHubCommiter
     {
         public string Name { get; set; }
         public string Email { get; set; }
